@@ -1,0 +1,25 @@
+pipeline {
+    agent any
+    parameters {
+        string(name: 'pipelineName', defaultValue: 'new-pipeline', description: 'Name of the new pipeline')
+        text(name: 'pipelineScript', defaultValue: 'pipeline { agent any; stages { stage("Example") { steps { echo "Hello from the new pipeline!" } } } }', description: 'Groovy script for the new pipeline')
+    }
+    stages {
+        stage('Create Pipeline') {
+            steps {
+                script {
+                    def jenkins = Jenkins.instance
+                    def items = jenkins.getAllItems(Job.class)
+                    if (items.any { it.name == params.pipelineName }) {
+                        error "Pipeline '${params.pipelineName}' already exists"
+                    } else {
+                        def newJob = jenkins.createProject(org.jenkinsci.plugins.workflow.job.WorkflowJob.class, params.pipelineName)
+                        newJob.definition = new org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition(params.pipelineScript, true)
+                        newJob.save()
+                        echo "Pipeline '${params.pipelineName}' created successfully"
+                    }
+                }
+            }
+        }
+    }
+}
